@@ -5,7 +5,7 @@ This is the official repository for the paper Uncovering Pretraining Code in LLM
 
 We propose **SYNPRUNE**, a syntax-pruned membership inference attack method tailored for code, to detect whether specific code samples were included in the pretraining data of large language models (LLMs), addressing transparency, accountability, and copyright compliance issues in code LLMs. Unlike prior membership inference attack (MIA) methods that treat code as plain text, **SYNPRUNE** leverages the structured nature of programming languages by pruning consequent tokens dictated by syntax conventions (e.g., from Python's data models, expressions, statements), excluding them from attribution scores to improve detection accuracy. To evaluate pretraining data detection for code LLMs, we introduce a new benchmark of Python functions, sourced from the **Pile dataset** for members and post-2024 GitHub repositories for non-members.
 
-![overview](./figures/overview.png)
+![overview](./assets/overview.png)
 
 ## Benchmark
 
