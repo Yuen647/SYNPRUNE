@@ -2,9 +2,6 @@ import argparse
 import ast
 import json
 import zlib
-from collections import defaultdict
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import torch
@@ -12,6 +9,8 @@ import torch.nn.functional as F
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from sklearn.metrics import auc, roc_curve
+from collections import defaultdict
+from pathlib import Path
 
 
 def extract_variable_names(code: str) -> dict:
