@@ -1,7 +1,6 @@
 import argparse
 import ast
 import json
-import zlib
 import numpy as np
 import pandas as pd
 import torch
@@ -9,10 +8,9 @@ import torch.nn.functional as F
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from sklearn.metrics import auc, roc_curve
-from collections import defaultdict
 from pathlib import Path
 
-CLOSE_KEYWORDS = {
+BASE_CLOSE_KEYWORDS = {
     "else","elif","except","finally",
     "yield","yield from","break","continue",
     "pass","raise",
@@ -23,9 +21,7 @@ CLOSE_KEYWORDS = {
     "if","for","while","try","with","class","def",
     "async","async for","async with","async def"
 }
-CLOSE_KEYWORDS -= {"if","for","while","try","with","class","def","elif","else","except","finally","match","case","async"}
-CLOSE_SYMBOLS = {")", "]", "}", ",", ".", ";"}
-ATTRIBUTE_DOT_RULE = True
+FULL_CLOSE_SYMBOLS = {")", "]", "}", ":", ",", ".", ";"}
 
 def extract_variable_names(code: str) -> dict:
     try:
@@ -67,7 +63,30 @@ def extract_variable_names(code: str) -> dict:
     except:
         return {}
 
-def get_closing_token_mask(tokenizer, text: str, input_ids: torch.Tensor) -> torch.Tensor:
+def get_config(drop: str):
+    if drop == "datamodel":
+        close_keywords = set(BASE_CLOSE_KEYWORDS)
+        close_symbols = {":", ",", ";"}
+        dot_rule = False
+    elif drop == "expressions":
+        close_keywords = set(BASE_CLOSE_KEYWORDS) - {"lambda","in","is","as","and","or","not","else"}
+        close_symbols = set(FULL_CLOSE_SYMBOLS)
+        dot_rule = True
+    elif drop == "single":
+        close_keywords = set(BASE_CLOSE_KEYWORDS) - {"import","from","assert","global","nonlocal","as"}
+        close_symbols = set(FULL_CLOSE_SYMBOLS)
+        dot_rule = True
+    elif drop == "compound":
+        close_keywords = set(BASE_CLOSE_KEYWORDS) - {"if","for","while","try","with","class","def","elif","else","except","finally","match","case","async"}
+        close_symbols = {")", "]", "}", ",", ".", ";"}
+        dot_rule = True
+    else:
+        close_keywords = set(BASE_CLOSE_KEYWORDS)
+        close_symbols = set(FULL_CLOSE_SYMBOLS)
+        dot_rule = True
+    return close_keywords, close_symbols, dot_rule
+
+def get_closing_token_mask(tokenizer, text: str, input_ids: torch.Tensor, close_keywords, close_symbols, attribute_dot_rule: bool) -> torch.Tensor:
     mask = torch.ones(input_ids.shape[1] - 1, dtype=torch.bool)
     tokens = tokenizer.convert_ids_to_tokens(input_ids[0][1:])
     encoding = tokenizer.encode_plus(
@@ -84,31 +103,26 @@ def get_closing_token_mask(tokenizer, text: str, input_ids: torch.Tensor) -> tor
         if token == '[PAD]':
             mask[i] = False
             continue
-        if token.strip() != token:
-            mask[i] = False
-            continue
         if i < len(offset_mapping):
             token_start, token_end = offset_mapping[i]
         bare = token.strip()
-        if bare in CLOSE_KEYWORDS or bare in CLOSE_SYMBOLS:
+        if bare in close_keywords or bare in close_symbols:
             mask[i] = False
         elif token.strip() == "_":
             mask[i] = False
-        elif ATTRIBUTE_DOT_RULE and token.strip() == "." and i > 0 and i < len(tokens) - 1:
+        elif attribute_dot_rule and token.strip() == "." and i > 0 and i < len(tokens) - 1:
             prev_token = tokens[i-1].strip()
             if prev_token == "self" or any(prev_token == var_name for var_name in variable_positions):
                 mask[i] = False
     return mask
 
 def safe_compute_scores(token_log_probs: torch.Tensor, mask: torch.Tensor, ratio: float) -> float:
-    valid_probs = token_log_probs[mask]
-    if len(valid_probs) == 0:
+    valid = token_log_probs[mask]
+    if valid.numel() == 0:
         return 0.0
-    valid_probs = valid_probs - valid_probs.max()
-    valid_probs = torch.exp(valid_probs)
-    valid_probs = valid_probs / valid_probs.sum()
-    k = min(int(len(valid_probs) * ratio), len(valid_probs))
-    return 0.0 if k == 0 else torch.mean(torch.sort(valid_probs)[0][:k]).item()
+    k = max(1, int(len(valid) * ratio))
+    vals, _ = torch.sort(valid)
+    return vals[:k].mean().item()
 
 def load_jsonl_dataset(path: str):
     with open(path, encoding="utf-8") as f:
@@ -116,10 +130,10 @@ def load_jsonl_dataset(path: str):
 
 def get_metrics(scores, labels):
     scores, labels = np.asarray(scores), np.asarray(labels)
-    mask = ~np.isnan(scores)
-    if mask.sum() == 0:
+    m = ~np.isnan(scores)
+    if m.sum() == 0:
         return 0.0, 0.0, 0.0
-    fpr, tpr, _ = roc_curve(labels[mask], scores[mask])
+    fpr, tpr, _ = roc_curve(labels[m], scores[m])
     auroc = auc(fpr, tpr)
     fpr95 = next((fpr[i] for i in range(len(tpr)) if tpr[i] >= 0.95), 1.0)
     tpr05 = next((tpr[i] for i in reversed(range(len(fpr))) if fpr[i] <= 0.05), 0.0)
@@ -128,9 +142,7 @@ def get_metrics(scores, labels):
 def load_model(name: str, int8: bool, half: bool):
     int8_kwargs = {"load_in_8bit": True, "torch_dtype": torch.bfloat16} if int8 else {}
     half_kwargs = {"torch_dtype": torch.bfloat16} if half and not int8 else {}
-    model = AutoModelForCausalLM.from_pretrained(
-        name, return_dict=True, device_map="auto", **int8_kwargs, **half_kwargs
-    )
+    model = AutoModelForCausalLM.from_pretrained(name, return_dict=True, device_map="auto", **int8_kwargs, **half_kwargs)
     model.eval()
     tokenizer = AutoTokenizer.from_pretrained(name)
     if hasattr(tokenizer, 'model_max_length'):
@@ -149,7 +161,9 @@ def main():
     argp.add_argument("--half", action="store_true")
     argp.add_argument("--int8", action="store_true")
     argp.add_argument("--max_length", type=int, default=512)
+    argp.add_argument("--drop", choices=["datamodel","expressions","single","compound"], required=True)
     args = argp.parse_args()
+    close_keywords, close_symbols, dot_rule = get_config(args.drop)
     model, tokenizer = load_model(args.model, args.int8, args.half)
     data = load_jsonl_dataset(args.dataset)
     scores = []
@@ -170,7 +184,7 @@ def main():
         with torch.no_grad():
             outputs = model(inp, labels=inp, attention_mask=attention_mask)
             logits = outputs.logits
-            mask = get_closing_token_mask(tokenizer, raw, inp)
+            mask = get_closing_token_mask(tokenizer, raw, inp, close_keywords, close_symbols, dot_rule)
             log_probs = F.log_softmax(logits[0, :-1], dim=-1)
             masked_log_probs = log_probs.clone()
             masked_log_probs[~mask] = float('-inf')
@@ -184,7 +198,7 @@ def main():
     print(df.to_string(index=False))
     out_dir = Path("/syncprune-results") / args.dataset
     out_dir.mkdir(parents=True, exist_ok=True)
-    csv = out_dir / f"{args.model.split('/')[-1]}_drop_compound.csv"
+    csv = out_dir / f"{args.model.split('/')[-1]}_drop_{args.drop}.csv"
     df.to_csv(csv, index=False)
 
 if __name__ == "__main__":
