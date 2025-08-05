@@ -1,5 +1,7 @@
 # SYNPRUNE
+
 This is the official repository for the paper Uncovering Pretraining Code in LLMs: A Syntax-Aware Attribution Approach.
+
 ## Overview
 
 We propose **SYNPRUNE**, a syntax-pruned membership inference attack method tailored for code, to detect whether specific code samples were included in the pretraining data of large language models (LLMs), addressing transparency, accountability, and copyright compliance issues in code LLMs. Unlike prior membership inference attack (MIA) methods that treat code as plain text, **SYNPRUNE** leverages the structured nature of programming languages by pruning consequent tokens dictated by syntax conventions (e.g., from Python's data models, expressions, statements), excluding them from attribution scores to improve detection accuracy. To evaluate pretraining data detection for code LLMs, we introduce a new benchmark of Python functions, sourced from the **Pile dataset** for members and post-2024 GitHub repositories for non-members.
@@ -75,9 +77,12 @@ The script currently computes and logs scores for:
 - `mink_0.2`: bottom-20% average log-probability (unmasked)
 - `synprune`: masked average log-probability using a syntax-based pruning mask
 
+## 🚀 How to Replicate
+
+See the **replicate.ipynb**
+
 ## 📌 Notes
 
 - The script uses HuggingFace Transformers to load and run causal language models.
 - You can replace `EleutherAI/pythia-2.8b` with any other HuggingFace CausalLM model (e.g., `gpt6j`, etc.).
 - `synprune` is sensitive to syntax-based token masking. You can adapt the pruning rules in `get_closing_token_mask()`.
-
