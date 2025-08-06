@@ -55,18 +55,16 @@ def extract_variable_names(code: str) -> dict:
 
 
 def get_closing_token_mask(tokenizer, text: str, input_ids: torch.Tensor) -> torch.Tensor:
-    CLOSE_KEYWORDS = {
-        "else","elif","except","finally",
-        "yield","yield from","break","continue",
-        "pass","raise",
-        "lambda","import","from","assert",
-        "global","nonlocal",
-        "in","is","as","and","or","not",
-        "match","case",
-        "if","for","while","try","with","class","def",
-        "async","async for","async with","async def"
-    }
-    CLOSE_SYMBOLS = {")", "]", "}", ":", ",", ".", ";"}
+    DATA_MODEL_SYMBOLS = {"]", "}", ")", ".", "'", '"',","}
+    EXPRESSIONS_KEYWORDS = {"in", "else", "is", "not"}
+    EXPRESSIONS_SYMBOLS = {"]", "}", ")", ":"}
+    SINGLE_STMT_KEYWORDS = {"as", "import", "from", "global", "nonlocal", "assert"}
+    SINGLE_STMT_SYMBOLS = {","}
+    COMPOUND_KEYWORDS = {"if", "for", "while", "try", "with", "class", "def", "elif", "else", "except", "finally", "match", "case", "async"}
+    FUNC_ARG_TOKENS = {"self", "/", "*"}
+    ARROW_TOKENS = {"->", "-", ">"}
+    CLOSE_KEYWORDS = set().union(EXPRESSIONS_KEYWORDS, SINGLE_STMT_KEYWORDS, COMPOUND_KEYWORDS, FUNC_ARG_TOKENS)
+    CLOSE_SYMBOLS = set().union(DATA_MODEL_SYMBOLS, EXPRESSIONS_SYMBOLS, SINGLE_STMT_SYMBOLS, ARROW_TOKENS, {":", ";", ","})
     mask = torch.ones(input_ids.shape[1] - 1, dtype=torch.bool)
     tokens = tokenizer.convert_ids_to_tokens(input_ids[0][1:])
     encoding = tokenizer.encode_plus(

@@ -19,6 +19,7 @@ The dataset contains non-training (non-member) and training (member) data:
 
 The benchmark supports evaluation under varied member-to-non-member **ratios** (e.g., 1:1, 1:5, 5:1) and includes statistics on syntax conventions (e.g., **38.4%** of tokens are syntax-related across categories like data models and expressions).  
 
+get more info from ./dataset/README.md
 
 
 ## 🔧 Environment Setup
@@ -62,6 +63,8 @@ python run.py \
 - `--int8`: use 8-bit inference (requires `bitsandbytes`)
 - `--max_length`: maximum sequence length (default is 512)
 
+get more info from ./src/README.md
+
 ## 📊 Output
 
 After running, a table will be printed to the console showing the evaluation metrics:
@@ -77,9 +80,22 @@ The script currently computes and logs scores for:
 - `mink_0.2`: bottom-20% average log-probability (unmasked)
 - `synprune`: masked average log-probability using a syntax-based pruning mask
 
+get more info from ./src/README.md
+
 ## 🚀 How to Replicate
 
-See the **/src/replicate.ipynb**
+See the **./src/replicate.ipynb**
+
+## evaluate
+
+### ablate.py
+This script runs **ablation experiments** for the SynPrune method.
+It loads a Python function dataset and a language model, applies a **syntax-based masking strategy** where specific categories of syntax tokens (Data Model, Expressions, Single Statements, Compound Statements) can be selectively excluded via the `--drop` parameter, computes SynPrune scores, and outputs the corresponding performance metrics (AUROC, FPR\@95, TPR\@5).
+It also saves results for each ablation setting to a CSV file for later analysis.
+
+### visualization.py
+This script loads a specified Python code dataset and a language model, computes **SynPrune** scores for each sample using a syntax-based token masking strategy, and outputs classification performance metrics such as AUROC and the best F1-score threshold.
+It can also plot the **F1-score curve** across different thresholds, either saving it as an image file or displaying it directly, allowing intuitive analysis of the model’s performance under varying thresholds.
 
 ## 📌 Notes
 
