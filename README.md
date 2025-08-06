@@ -79,7 +79,7 @@ The script currently computes and logs scores for:
 
 ## 🚀 How to Replicate
 
-See the **replicate.ipynb**
+See the **/src/replicate.ipynb**
 
 ## 📌 Notes
 
