@@ -12,10 +12,14 @@ We propose **SYNPRUNE**, a syntax-pruned membership inference attack method tail
 
 The **Python Function Benchmark** serves as a real-world evaluation dataset for membership inference attacks on code LLMs, specifically targeting models pretrained on datasets like the Pile (e.g., Pythia, GPT-Neo, StableLM).  
 
-The dataset contains non-training (non-member) and training (member) data:  
+The dataset contains training (member) data and non-training (non-member):  
 
-- **Non-member data** includes 1000 Python functions extracted from 214 GitHub repositories created after January 1, 2024 (post-release cutoff for evaluated LLMs), verified for originality using heuristics like function name searches, variable name checks, and logic similarity detection via GitHub API.  
-- **Member data** includes 1000 Python functions randomly sampled from the Pile dataset (released in 2021), which is widely used in LLM pretraining.  
+- **Member data** includes 1,000 Python functions randomly sampled from the Pile dataset (released in 2021), which is widely used in LLM pretraining. The Pile is a large-scale open-source dataset composed of multiple smaller datasets, including 7.6% of a repository dataset sourced from GitHub. We sampled the functions by selecting 10 functions from every 100 consecutive entries in the Pile dataset.
+
+- **Non-member data** includes 1,000 Python functions extracted from 100 GitHub repositories created after January 1, 2024 (all four evaluated LLMs had been released prior to this date). To ensure repository quality, we sorted repositories by star count in descending order and extracted 10 Python functions from each repository in order.
+To verify that these functions were genuinely original and not cloned from pre-existing sources, we implemented a rigorous verification process: we parsed each candidate function's code using Python's ast module to extract its name, variable names, and function calls, then used these elements to build search queries for the GitHub API. The verification employed three heuristics: (1) searching for the exact function name to identify direct duplicates; (2) searching by internal variable names to detect refactored code reuse; and (3) searching for the complete string of function calls to find logic similarities. Two authors conducted peer reviews on the search results to ensure all 1,000 functions were original and created after January 2024.
+
+The benchmark includes 214 non-member function files (some repositories contributed multiple files) with an average of 25.34 lines of code (LOC). For member functions, file counts are unavailable as this information was not provided in the Pile dataset.
 
 The benchmark supports evaluation under varied member-to-non-member **ratios** (e.g., 1:1, 1:5, 5:1) and includes statistics on syntax conventions (e.g., **38.4%** of tokens are syntax-related across categories like data models and expressions).  
 
