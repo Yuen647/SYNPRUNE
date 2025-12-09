@@ -19,7 +19,7 @@ If you find this work helpful, please consider citing our paper:
 ```latex
 @misc{li2025synprune,
     title={Uncovering Pretraining Code in LLMs: A Syntax-Aware Attribution Approach},
-    author={Yuanheng Li1 and Zhuoyang Chen1 and Xiaoyun Liu and Yuhao Wang and Mingwei Liu and Yang Shi and Kaifeng Huang and Shengjie Zhao},
+    author={Yuanheng Li and Zhuoyang Chen and Xiaoyun Liu and Yuhao Wang and Mingwei Liu and Yang Shi and Kaifeng Huang and Shengjie Zhao},
     year={2025},
     eprint={2511.07033},
     archivePrefix={arXiv},
