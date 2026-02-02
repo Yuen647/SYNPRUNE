@@ -23,7 +23,7 @@ The benchmark includes 214 non-member function files (some repositories contribu
 
 The benchmark supports evaluation under varied member-to-non-member **ratios** (e.g., 1:1, 1:5, 5:1) and includes statistics on syntax conventions (e.g., **38.4%** of tokens are syntax-related across categories like data models and expressions).  
 
-Access our datasets directly on [https://huggingface.co/datasets/Sheerio/SynPrune-Python).
+Access our datasets directly on [**Python Function Benchmark**](https://huggingface.co/datasets/Sheerio/SynPrune-Python).
 
 
 ## 🔧 Environment Setup
