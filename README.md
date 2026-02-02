@@ -114,12 +114,10 @@ It can also plot the **F1-score curve** across different thresholds, either savi
 If you find this work helpful, please consider citing our paper:
 
 ```latex
-@misc{li2025synprune,
+@inproceedings{li2025synprune,
     title={Uncovering Pretraining Code in LLMs: A Syntax-Aware Attribution Approach},
     author={Yuanheng Li and Zhuoyang Chen and Xiaoyun Liu and Yuhao Wang and Mingwei Liu and Yang Shi and Kaifeng Huang and Shengjie Zhao},
-    year={2025},
-    eprint={2511.07033},
-    archivePrefix={arXiv},
-    primaryClass={cs.CR}
+    booktitle={Proceedings of the AAAI Conference on Artificial Intelligence},
+    year={2026},
 }
 ```
